@@ -40,12 +40,14 @@ const [success, setSuccess] = useState<string | undefined>("")
     setSuccess("");
 
     login(values)
-    .then((data) => {
-      setSuccess(data.success);
-      setError(data.error)
-    })
-  }
-
+  .then((data) => {
+    if ('success' in data) {
+      setSuccess(data.success as string);
+    } else {
+      setError(data.error);
+    }
+  })
+}
   return (
     <CardWrapper
       headerLabel="Welcome back"
@@ -90,7 +92,7 @@ const [success, setSuccess] = useState<string | undefined>("")
             )}
           />
           <FormError message={error} />
-         <FormSucces message={success}/>
+         {success && <FormSucces message={success}/>}
           <Button className="w-full" type="submit">Login</Button>
         </form>
       </Form>
