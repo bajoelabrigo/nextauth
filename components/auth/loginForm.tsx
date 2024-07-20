@@ -20,11 +20,18 @@ import { LoginSchema } from "@/schemas";
 import FormError from "../FormError";
 import FormSucces from "../FormSucess";
 import { login } from "@/actions/login";
-import { useState } from "react";
+import { useState, useTransition } from "react";
+import { useSearchParams } from "next/navigation";
 
 const LoginForm = () => {
-const [error, setError] = useState<string | undefined>("");
-const [success, setSuccess] = useState<string | undefined>("")
+  const searchParams = useSearchParams();
+  const urlError =
+    searchParams.get("error") === "OAuthAccountNotLinked"
+      ? "Email already in use with different provider!"
+      : "";
+  const [error, setError] = useState<string | undefined>("");
+  const [success, setSuccess] = useState<string | undefined>("");
+  const [isPending, startTransition] = useTransition();
 
   const form = useForm<z.infer<typeof LoginSchema>>({
     resolver: zodResolver(LoginSchema),
@@ -39,15 +46,15 @@ const [success, setSuccess] = useState<string | undefined>("")
     setError("");
     setSuccess("");
 
-    login(values)
-  .then((data) => {
-    if ('success' in data) {
-      setSuccess(data.success as string);
-    } else {
-      setError(data.error);
-    }
-  })
-}
+    startTransition(() => {
+      login(values).then((data) => {
+        login(values).then((data) => {
+          setError(data?.error);
+          setSuccess(data?.success);
+        });
+      });
+    });
+  }
   return (
     <CardWrapper
       headerLabel="Welcome back"
@@ -68,6 +75,7 @@ const [success, setSuccess] = useState<string | undefined>("")
                     placeholder="joe.deo@gmail.com"
                     {...field}
                     type="email"
+                    disabled={isPending}
                   />
                 </FormControl>
                 <FormMessage />
@@ -81,19 +89,17 @@ const [success, setSuccess] = useState<string | undefined>("")
               <FormItem>
                 <FormLabel>Password</FormLabel>
                 <FormControl>
-                  <Input
-                    placeholder="*******"
-                    {...field}
-                    type="password"
-                  />
+                  <Input placeholder="*******" {...field} type="password" disabled={isPending}/>
                 </FormControl>
                 <FormMessage />
               </FormItem>
             )}
           />
-          <FormError message={error} />
-         {success && <FormSucces message={success}/>}
-          <Button className="w-full" type="submit">Login</Button>
+          <FormError message={error || urlError} />
+          {success && <FormSucces message={success} />}
+          <Button disabled={isPending} className="w-full" type="submit">
+            Login
+          </Button>
         </form>
       </Form>
     </CardWrapper>

@@ -8,16 +8,36 @@ import { getUserById } from "@/data/user";
 const prisma = new PrismaClient();
 
 export const { auth, handlers, signIn, signOut } = NextAuth({
+  pages: {
+    signIn: "/auth/login",
+    signOut: "/auth/signout",
+    error: "/auth/error",
+    //verifyRequest: "/auth/verify-request",
+    //newUser: "/auth/new-user",
+  },
+  events: {
+    async linkAccount({ user }) {
+      await db.user.update({
+        where: { id: user.id },
+        data: { emailVerified: new Date() },
+      });
+    },
+  },
   callbacks: {
-    // async signIn({ user }) {
-    //   const existingUser = await 
-    //   getUserById(user.id);
+    async signIn({ user, account }) {
+      //Allow OAuth withouth email verification
+      if (account?.provider !== "credentials") return true;
 
-    //   if (!existingUser || !existingUser.emailVerified) {
-    //     return false;
-    //   }
-    //   return true;
-    // },
+      if (user?.id) {
+        const existingUser = await getUserById(user?.id);
+
+        //Prevent sign without email verification
+        if (!existingUser?.emailVerified) return false;
+      }
+
+      // TODO: Add 2FACT check
+      return true;
+    },
 
     async session({ token, session }) {
       console.log({ sessionToken: token, session });

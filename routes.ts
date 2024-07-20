@@ -10,6 +10,7 @@ export const publicRoutes = [
 export const authRoutes = [
     "/auth/login",
     "/auth/register",
+    "auth/error"
 ]
 
 /**An array of routes that accessible t
